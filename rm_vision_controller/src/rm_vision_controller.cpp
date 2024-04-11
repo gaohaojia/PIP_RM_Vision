@@ -52,7 +52,7 @@ RMVisionController::RMVisionController(const rclcpp::NodeOptions & options)
 
   // Create Subscription
   vision_recv_sub_ = this->create_subscription<serial_interfaces::msg::VisionRecv>(
-    "vision_recv", 10, std::bind(&RMVisionController::receiveDataVision, this, std::placeholders::_1));
+    "/vision_recv", 10, std::bind(&RMVisionController::receiveDataVision, this, std::placeholders::_1));
 }
 
 void RMVisionController::receiveDataVision(const serial_interfaces::msg::VisionRecv::SharedPtr msg)
