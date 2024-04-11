@@ -16,8 +16,6 @@
 #include <string>
 #include <vector>
 
-#include "rm_vision_controller/crc.hpp"
-#include "rm_vision_controller/packet.hpp"
 #include "rm_vision_controller/rm_vision_controller.hpp"
 
 namespace rm_vision_controller
@@ -53,33 +51,18 @@ RMVisionController::RMVisionController(const rclcpp::NodeOptions & options)
   aiming_point_.lifetime = rclcpp::Duration::from_seconds(0.1);
 
   // Create Subscription
-  target_sub_ = this->create_subscription<auto_aim_interfaces::msg::Target>(
-    "/tracker/target", rclcpp::SensorDataQoS(),
-    std::bind(&RMVisionController::sendDataVision, this, std::placeholders::_1));
   vision_recv_sub_ = this->create_subscription<serial_interfaces::msg::VisionRecv>(
     "vision_recv", 10, std::bind(&RMVisionController::receiveDataVision, this, std::placeholders::_1));
 }
 
 void RMVisionController::receiveDataVision(const serial_interfaces::msg::VisionRecv::SharedPtr msg)
 {
-  ReceivePacket packet;
-  packet.detect_color = msg->detect_color;
-  packet.reset_tracker = msg->reset_tracker;
-  packet.roll = msg->roll;
-  packet.pitch = msg->pitch;
-  packet.yaw = msg->yaw;
-  packet.aim_x = msg->aim_x;
-  packet.aim_y = msg->aim_y;
-  packet.aim_z = msg->aim_z;
-
-  // RCLCPP_INFO(get_logger(), "R:%f, P:%f, Y:%f", packet.roll, packet.pitch, packet.yaw);
-
-  if (!initial_set_param_ || packet.detect_color != previous_receive_color_) {
-    setParam(rclcpp::Parameter("detect_color", packet.detect_color));
-    previous_receive_color_ = packet.detect_color;
+  if (!initial_set_param_ || msg->detect_color != previous_receive_color_) {
+    setParam(rclcpp::Parameter("detect_color", msg->detect_color));
+    previous_receive_color_ = msg->detect_color;
   }
 
-  if (packet.reset_tracker) {
+  if (msg->reset_tracker) {
     resetTracker();
   }
 
@@ -89,28 +72,16 @@ void RMVisionController::receiveDataVision(const serial_interfaces::msg::VisionR
   t.header.frame_id = "odom";
   t.child_frame_id = "gimbal_link";
   tf2::Quaternion q;
-  q.setRPY(packet.roll, packet.pitch, packet.yaw);
+  q.setRPY(msg->roll, msg->pitch, msg->yaw);
   t.transform.rotation = tf2::toMsg(q);
   tf_broadcaster_->sendTransform(t);
 
-  if (abs(packet.aim_x) > 0.01) {
+  if (abs(msg->aim_x) > 0.01) {
     aiming_point_.header.stamp = this->now();
-    aiming_point_.pose.position.x = packet.aim_x;
-    aiming_point_.pose.position.y = packet.aim_y;
-    aiming_point_.pose.position.z = packet.aim_z;
+    aiming_point_.pose.position.x = msg->aim_x;
+    aiming_point_.pose.position.y = msg->aim_y;
+    aiming_point_.pose.position.z = msg->aim_z;
     marker_pub_->publish(aiming_point_);
-  }
-}
-
-void RMVisionController::sendDataVision(const auto_aim_interfaces::msg::Target::SharedPtr msg)
-{
-  try {
-    std_msgs::msg::Float64 latency;
-    latency.data = (this->now() - msg->header.stamp).seconds() * 1000.0;
-    RCLCPP_DEBUG_STREAM(get_logger(), "Total latency: " + std::to_string(latency.data) + "ms");
-    latency_pub_->publish(latency);
-  } catch (const std::exception & ex) {
-    RCLCPP_ERROR(get_logger(), "Error while sending data: %s", ex.what());
   }
 }
 

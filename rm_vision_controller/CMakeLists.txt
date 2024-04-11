@@ -25,7 +25,6 @@ ament_auto_find_build_dependencies()
 
 ament_auto_add_library(${PROJECT_NAME} SHARED
   src/rm_vision_controller.cpp
-  src/crc.cpp
 )
 
 rclcpp_components_register_node(${PROJECT_NAME}
@@ -52,6 +51,5 @@ endif()
 
 ament_auto_package(
   INSTALL_TO_SHARE
-  config
   launch
 )

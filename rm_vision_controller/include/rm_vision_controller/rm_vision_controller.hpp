@@ -37,8 +37,6 @@ private:
 
   void receiveDataVision(serial_interfaces::msg::VisionRecv::SharedPtr msg);
 
-  void sendDataVision(auto_aim_interfaces::msg::Target::SharedPtr msg);
-
   void setParam(const rclcpp::Parameter & param);
 
   void resetTracker();
@@ -60,14 +58,11 @@ private:
   double timestamp_offset_ = 0;
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
-  rclcpp::Subscription<auto_aim_interfaces::msg::Target>::SharedPtr target_sub_;
   rclcpp::Subscription<serial_interfaces::msg::VisionRecv>::SharedPtr vision_recv_sub_;
 
   // For debug usage
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr latency_pub_;
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr marker_pub_;
-
-  std::thread receive_thread_;
 };
 }  // namespace rm_vision_controller
 
