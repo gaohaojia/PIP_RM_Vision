@@ -32,6 +32,7 @@ RMVisionController::RMVisionController(const rclcpp::NodeOptions & options)
   // Create Publisher
   latency_pub_ = this->create_publisher<std_msgs::msg::Float64>("/latency", 10);
   marker_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("/aiming_point", 10);
+  vision_target_pub_ = this->create_publisher<serial_interfaces::msg::VisionTarget>("/vision_target", 10);
 
   // Detect parameter client
   detector_param_client_ = std::make_shared<rclcpp::AsyncParametersClient>(this, "armor_detector");
@@ -53,6 +54,9 @@ RMVisionController::RMVisionController(const rclcpp::NodeOptions & options)
   // Create Subscription
   vision_recv_sub_ = this->create_subscription<serial_interfaces::msg::VisionRecv>(
     "/vision_recv", 10, std::bind(&RMVisionController::receiveDataVision, this, std::placeholders::_1));
+  target_sub_ = this->create_subscription<auto_aim_interfaces::msg::Target>(
+    "/tracker/target", rclcpp::SensorDataQoS(),
+    std::bind(&RMVisionController::sendDataVision, this, std::placeholders::_1));
 }
 
 void RMVisionController::receiveDataVision(const serial_interfaces::msg::VisionRecv::SharedPtr msg)
@@ -84,6 +88,28 @@ void RMVisionController::receiveDataVision(const serial_interfaces::msg::VisionR
     marker_pub_->publish(aiming_point_);
   }
 }
+
+void RMVisionController::sendDataVision(const auto_aim_interfaces::msg::Target::SharedPtr msg)
+{
+  serial_interfaces::msg::VisionTarget vision_target;
+  vision_target.tracking = msg->tracking;
+  vision_target.id = msg->id;
+  vision_target.armors_num = msg->armors_num;
+  vision_target.position = msg->position;
+  vision_target.velocity = msg->velocity;
+  vision_target.yaw = msg->yaw;
+  vision_target.v_yaw = msg->v_yaw;
+  vision_target.radius_1 = msg->radius_1;
+  vision_target.radius_2 = msg->radius_2;
+  vision_target.dz = msg->dz;
+  vision_target_pub_->publish(vision_target);
+
+  std_msgs::msg::Float64 latency;
+  latency.data = (this->now() - msg->header.stamp).seconds() * 1000.0;
+  RCLCPP_DEBUG_STREAM(get_logger(), "Total latency: " + std::to_string(latency.data) + "ms");
+  latency_pub_->publish(latency);
+}
+
 
 void RMVisionController::setParam(const rclcpp::Parameter & param)
 {

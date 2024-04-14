@@ -7,6 +7,7 @@
 #include <tf2_ros/transform_broadcaster.h>
 
 #include <serial_interfaces/msg/referee.hpp>
+#include <serial_interfaces/msg/vision_target.hpp>
 #include <auto_aim_interfaces/msg/target.hpp>
 #include <serial_interfaces/msg/vision_recv.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
@@ -36,6 +37,7 @@ public:
 private:
 
   void receiveDataVision(serial_interfaces::msg::VisionRecv::SharedPtr msg);
+  void sendDataVision(auto_aim_interfaces::msg::Target::SharedPtr msg);
 
   void setParam(const rclcpp::Parameter & param);
 
@@ -59,10 +61,12 @@ private:
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
   rclcpp::Subscription<serial_interfaces::msg::VisionRecv>::SharedPtr vision_recv_sub_;
+  rclcpp::Subscription<auto_aim_interfaces::msg::Target>::SharedPtr target_sub_;
 
   // For debug usage
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr latency_pub_;
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr marker_pub_;
+  rclcpp::Publisher<serial_interfaces::msg::VisionTarget>::SharedPtr vision_target_pub_;
 };
 }  // namespace rm_vision_controller
 
